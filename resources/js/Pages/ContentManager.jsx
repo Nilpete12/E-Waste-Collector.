@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 
 const INITIAL_CONTENT = [
     { id: 'mobile', type: 'Mobile Phones', materials: 'Lead, Mercury, Cadmium', effects: 'Chronic exposure causes kidney damage and severe soil pollution.' },
@@ -12,7 +13,7 @@ export default function ContentManager() {
     const [isEditing, setIsEditing] = useState(null);
 
     return (
-        <MainLayout>
+        <AdminLayout>
             <Head title="Content DB | Admin" />
             
             <div className="relative min-h-screen pb-24 font-sans bg-stone-950">
@@ -72,6 +73,6 @@ export default function ContentManager() {
 
                 </div>
             </div>
-        </MainLayout>
+        </AdminLayout>
     );
 }

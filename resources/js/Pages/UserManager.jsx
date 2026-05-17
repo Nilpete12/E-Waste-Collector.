@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 
 const MOCK_USERS = [
     { id: "USR-001", name: "Sarah J.", email: "sarah@example.com", role: "User", points: 12450 },
@@ -17,7 +18,7 @@ export default function UserManager() {
     };
 
     return (
-        <MainLayout>
+        <AdminLayout>
             <Head title="User Control | Admin" />
             
             <div className="relative min-h-screen pb-24 font-sans bg-stone-950">
@@ -75,6 +76,6 @@ export default function UserManager() {
                     </div>
                 </div>
             </div>
-        </MainLayout>
+        </AdminLayout>
     );
 }

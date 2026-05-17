@@ -29,13 +29,13 @@ export default function FacilityCard({ facility, isActive, onClick }) {
                 {facility.address}
             </p>
 
-            <div className="flex flex-wrap gap-2 mb-4">
-                {facility.acceptedDevices.map((device, idx) => (
-                    <span key={idx} className="text-[10px] uppercase tracking-wider font-semibold text-stone-300 bg-stone-800 border border-stone-700 px-2 py-1 rounded-md">
-                        {device}
-                    </span>
-                ))}
-            </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {(facility.accepted_devices || facility.acceptedDevices || []).map((device, idx) => (
+                        <span key={idx} className="text-[10px] uppercase tracking-wider font-semibold text-stone-300 bg-stone-800 border border-stone-700 px-2 py-1 rounded-md">
+                            {device}
+                        </span>
+                    ))}
+                </div>
 
             <div className="flex items-center justify-between pt-4 mt-4 border-t border-stone-800/50">
                 <div className="flex items-center gap-1">

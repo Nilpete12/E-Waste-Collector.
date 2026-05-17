@@ -1,32 +1,44 @@
-import { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { useUser } from '@clerk/clerk-react';
 import MainLayout from '@/Layouts/MainLayout';
 
 export default function SchedulePickup() {
-    const [formData, setFormData] = useState({
+    const { user, isLoaded } = useUser();
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    // Inertia's powerful form handler
+    const { data, setData, post, processing } = useForm({
+        userName: '',
+        userEmail: '',
         deviceType: 'mobile',
         condition: 'broken',
         address: '',
         pincode: '',
         date: '',
-        timeSlot: 'morning',
-        notes: ''
+        timeSlot: 'morning'
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isSuccess, setIsSuccess] = useState(false);
+    // When Clerk loads the user, silently inject their details into the form payload
+    useEffect(() => {
+        if (isLoaded && user) {
+            setData(data => ({
+                ...data,
+                userName: user.fullName || user.firstName || 'Eco User',
+                userEmail: user.primaryEmailAddress?.emailAddress || 'user@example.com'
+            }));
+        }
+    }, [isLoaded, user]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
         
-        // Simulate an API call to your Laravel backend
-        setTimeout(() => {
-            setIsSubmitting(false);
-            setIsSuccess(true);
-        }, 1500);
+        // Send the real POST request to Laravel
+        post('/pickup/store', {
+            preserveScroll: true,
+            onSuccess: () => setIsSuccess(true), // Show success screen only if DB saves it!
+        });
     };
-
     return (
         <MainLayout>
             <Head title="Schedule Pickup | EcoLocator" />
@@ -56,7 +68,6 @@ export default function SchedulePickup() {
                             {/* Left Column: The Booking Form */}
                             <div className="relative p-8 overflow-hidden border shadow-2xl lg:col-span-2 bg-stone-900/60 backdrop-blur-xl border-stone-800 rounded-3xl">
                                 <form onSubmit={handleSubmit} className="space-y-6">
-                                    
                                     {/* Device Information */}
                                     <div>
                                         <h3 className="flex items-center gap-2 mb-4 text-lg font-bold text-white">
@@ -67,8 +78,8 @@ export default function SchedulePickup() {
                                             <div>
                                                 <label className="block text-sm font-medium text-stone-400 mb-1.5">Primary Device Type</label>
                                                 <select 
-                                                    value={formData.deviceType}
-                                                    onChange={(e) => setFormData({...formData, deviceType: e.target.value})}
+                                                    value={data.deviceType}
+                                                    onChange={(e) => setData('deviceType', e.target.value)}
                                                     className="w-full px-4 py-3 text-white transition-all border bg-stone-950 border-stone-700 rounded-xl focus:ring-2 focus:ring-emerald-500"
                                                 >
                                                     <option value="mobile">Mobile Phones / Tablets</option>
@@ -81,8 +92,8 @@ export default function SchedulePickup() {
                                             <div>
                                                 <label className="block text-sm font-medium text-stone-400 mb-1.5">Condition</label>
                                                 <select 
-                                                    value={formData.condition}
-                                                    onChange={(e) => setFormData({...formData, condition: e.target.value})}
+                                                    value={data.condition}
+                                                    onChange={(e) => setData('condition', e.target.value)}
                                                     className="w-full px-4 py-3 text-white transition-all border bg-stone-950 border-stone-700 rounded-xl focus:ring-2 focus:ring-emerald-500"
                                                 >
                                                     <option value="working">Working / Intact</option>
@@ -104,8 +115,8 @@ export default function SchedulePickup() {
                                                 <label className="block text-sm font-medium text-stone-400 mb-1.5">Full Address</label>
                                                 <textarea 
                                                     rows="2"
-                                                    value={formData.address}
-                                                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                                    value={data.address}
+                                                    onChange={(e) => setData('address', e.target.value)}
                                                     placeholder="Enter your street address, apartment, building..."
                                                     required
                                                     className="w-full px-4 py-3 text-white transition-all border resize-none bg-stone-950 border-stone-700 rounded-xl focus:ring-2 focus:ring-emerald-500 placeholder-stone-600"
@@ -115,8 +126,8 @@ export default function SchedulePickup() {
                                                 <label className="block text-sm font-medium text-stone-400 mb-1.5">PIN Code</label>
                                                 <input 
                                                     type="text" 
-                                                    value={formData.pincode}
-                                                    onChange={(e) => setFormData({...formData, pincode: e.target.value})}
+                                                    value={data.pincode}
+                                                    onChange={(e) => setData('pincode', e.target.value)}
                                                     placeholder="e.g. 110001"
                                                     required
                                                     className="w-full px-4 py-3 text-white transition-all border md:w-1/2 bg-stone-950 border-stone-700 rounded-xl focus:ring-2 focus:ring-emerald-500 placeholder-stone-600"
@@ -134,11 +145,10 @@ export default function SchedulePickup() {
                                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                             <div>
                                                 <label className="block text-sm font-medium text-stone-400 mb-1.5">Date</label>
-                                                {/* Inversion trick for native date picker icon in dark mode */}
                                                 <input 
                                                     type="date" 
-                                                    value={formData.date}
-                                                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                                    value={data.date}
+                                                    onChange={(e) => setData('date', e.target.value)}
                                                     required
                                                     className="w-full bg-stone-950 border border-stone-700 text-white rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 transition-all [color-scheme:dark]"
                                                 />
@@ -146,8 +156,8 @@ export default function SchedulePickup() {
                                             <div>
                                                 <label className="block text-sm font-medium text-stone-400 mb-1.5">Time Slot</label>
                                                 <select 
-                                                    value={formData.timeSlot}
-                                                    onChange={(e) => setFormData({...formData, timeSlot: e.target.value})}
+                                                    value={data.timeSlot}
+                                                    onChange={(e) => setData('timeSlot', e.target.value)}
                                                     className="w-full px-4 py-3 text-white transition-all border bg-stone-950 border-stone-700 rounded-xl focus:ring-2 focus:ring-emerald-500"
                                                 >
                                                     <option value="morning">Morning (9:00 AM - 12:00 PM)</option>
@@ -160,10 +170,10 @@ export default function SchedulePickup() {
 
                                     <button 
                                         type="submit" 
-                                        disabled={isSubmitting}
+                                        disabled={processing}
                                         className="w-full mt-8 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] disabled:opacity-50 flex justify-center items-center gap-2 text-lg"
                                     >
-                                        {isSubmitting ? (
+                                        {processing ? (
                                             <span className="w-6 h-6 border-4 rounded-full border-emerald-950 border-t-transparent animate-spin"></span>
                                         ) : (
                                             "Confirm Pickup Request"

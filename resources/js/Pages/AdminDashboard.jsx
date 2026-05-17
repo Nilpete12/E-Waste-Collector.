@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 
 // Mock Analytics Data
 const ANALYTICS = {
@@ -20,9 +21,8 @@ const INITIAL_QUEUE = [
     { id: "PK-8820", user: "Nilesh S.", device: "Sony Bravia TV", date: "May 15, 2026", status: "Completed" },
 ];
 
-export default function AdminDashboard() {
-    const [queue, setQueue] = useState(INITIAL_QUEUE);
-
+export default function AdminDashboard({ dbPickups }) {
+    const [queue, setQueue] = useState(dbPickups || []);
     // Function to handle status updates in the UI
     const updateStatus = (id, newStatus) => {
         setQueue(queue.map(item => 
@@ -41,7 +41,7 @@ export default function AdminDashboard() {
     };
 
     return (
-        <MainLayout>
+        <AdminLayout>
             <Head title="Admin Control | EcoLocator" />
             
             <div className="relative min-h-screen pb-24 overflow-hidden font-sans bg-stone-950">
@@ -129,10 +129,13 @@ export default function AdminDashboard() {
                                 <tbody className="text-sm">
                                     {queue.map((item, idx) => (
                                         <tr key={idx} className="transition-colors border-b border-stone-800/30 hover:bg-stone-800/20">
-                                            <td className="py-4 pl-4 font-mono font-bold text-stone-400">{item.id}</td>
-                                            <td className="py-4 font-semibold text-white">{item.user}</td>
-                                            <td className="py-4 text-stone-300">{item.device}</td>
-                                            <td className="py-4 text-stone-400">{item.date}</td>
+                                            <td className="py-4 pl-4 font-mono font-bold text-stone-400">{item.request_id}</td>
+                                            <td className="py-4 font-semibold text-white">
+                                                {item.user_name} <br/>
+                                                <span className="text-xs font-normal text-stone-500">{item.user_email}</span>
+                                            </td>
+                                            <td className="py-4 capitalize text-stone-300">{item.device_type}</td>
+                                            <td className="py-4 text-stone-400">{item.scheduled_date}</td>
                                             <td className="py-4">
                                                 <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusStyle(item.status)}`}>
                                                     {item.status}
@@ -176,6 +179,6 @@ export default function AdminDashboard() {
 
                 </div>
             </div>
-        </MainLayout>
+        </AdminLayout>
     );
 }

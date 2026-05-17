@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Head } from '@inertiajs/react';
 import MainLayout from '@/Layouts/MainLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 
 const INITIAL_FACILITIES = [
     { id: 1, name: "GreenTech E-Waste Hub", address: "Sector 62, Noida, UP 201309", contact: "+91 98765 43210", status: "Active" },
@@ -22,7 +23,7 @@ export default function FacilityManager() {
     };
 
     return (
-        <MainLayout>
+        <AdminLayout>
             <Head title="Manage Facilities | Admin" />
             
             <div className="relative min-h-screen pb-24 font-sans bg-stone-950">
@@ -98,6 +99,6 @@ export default function FacilityManager() {
                     </div>
                 </div>
             )}
-        </MainLayout>
+        </AdminLayout>
     );
 }
