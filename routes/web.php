@@ -77,9 +77,6 @@ Route::get('/admin/dashboard', function () {
 Route::post('/api/admin/pickup/status', [SystemController::class, 'updatePickupStatus']);
 Route::get('/api/user/stats', [SystemController::class, 'getUserStats']);
 
-// Just-In-Time User Sync
-Route::post('/api/user/sync', [SystemController::class, 'syncUser']);
-
 
 // (You can leave the rest of the file as-is for now)
 require __DIR__.'/auth.php';

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
-use App\Models\PlatformUser;
 
 class SystemController extends Controller
 {
@@ -17,21 +16,6 @@ class SystemController extends Controller
             $pickup->save();
         }
         return response()->json(['success' => true]);
-    }
-
-    // 3. SILENT SYNC: Mirror Clerk users into the Laravel Database
-    public function syncUser(Request $request)
-    {
-        $user = PlatformUser::updateOrCreate(
-            ['email' => $request->email], // Look for them by email...
-            [
-                'clerk_id' => $request->clerk_id,
-                'name' => $request->name,
-                'role' => $request->role
-            ] // ...If found, update them. If not, create them!
-        );
-
-        return response()->json(['success' => true, 'user' => $user]);
     }
 
     // 2. USER ACTION: Dynamically calculate a user's dashboard stats & leaderboard
@@ -79,16 +63,13 @@ class SystemController extends Controller
 
         // Group points by user
         foreach($allCompleted as $ac) {
-            if (!isset($leaderboardMap[$email])) {
-            // Grab their synced name from the new table!
-            $localUser = PlatformUser::where('email', $email)->first();
-            
-            $leaderboardMap[$email] = [
-                'name' => $localUser ? $localUser->name : 'You',
-                'email' => $email,
-                'points' => 0
-            ];
-        }
+            if(!isset($leaderboardMap[$ac->user_email])) {
+                $leaderboardMap[$ac->user_email] = [
+                    'name' => $ac->user_name,
+                    'email' => $ac->user_email,
+                    'points' => 0
+                ];
+            }
             if ($ac->device_type === 'laptop') $leaderboardMap[$ac->user_email]['points'] += 500;
             elseif ($ac->device_type === 'mobile') $leaderboardMap[$ac->user_email]['points'] += 150;
             else $leaderboardMap[$ac->user_email]['points'] += 200;
