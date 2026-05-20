@@ -73,9 +73,11 @@ Route::get('/admin/dashboard', function () {
     ]);
 });
 
-//End-to-End routes
+// Platform Multi-User API Routes
+Route::post('/api/user/sync', [SystemController::class, 'syncUser']);
+Route::get('/api/user/dashboard', [SystemController::class, 'getUserDashboard']);
+Route::get('/api/admin/dashboard', [SystemController::class, 'getAdminData']);
 Route::post('/api/admin/pickup/status', [SystemController::class, 'updatePickupStatus']);
-Route::get('/api/user/stats', [SystemController::class, 'getUserStats']);
 
 
 // (You can leave the rest of the file as-is for now)

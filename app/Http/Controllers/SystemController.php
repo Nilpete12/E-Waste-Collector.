@@ -4,10 +4,25 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\PickupRequest;
+use App\Models\PlatformUser;
 
 class SystemController extends Controller
 {
-    // 1. ADMIN ACTION: Update the status of a pickup in the database
+    // 1. SILENT SYNC: Mirrors Clerk users into your local database
+    public function syncUser(Request $request)
+    {
+        $user = PlatformUser::updateOrCreate(
+            ['email' => $request->email], 
+            [
+                'clerk_id' => $request->clerk_id,
+                'name' => $request->name,
+                'role' => $request->role
+            ]
+        );
+        return response()->json(['success' => true]);
+    }
+
+    // 2. ADMIN ACTIONS: Change status and get all platform data
     public function updatePickupStatus(Request $request)
     {
         $pickup = PickupRequest::find($request->id);
@@ -18,82 +33,72 @@ class SystemController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // 2. USER ACTION: Dynamically calculate a user's dashboard stats & leaderboard
-    public function getUserStats(Request $request)
+    public function getAdminData()
+    {
+        // Admin sees EVERYTHING from EVERYONE
+        $allPickups = PickupRequest::orderBy('created_at', 'desc')->get();
+        $allUsers = PlatformUser::orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'pickups' => $allPickups,
+            'users' => $allUsers
+        ]);
+    }
+
+    // 3. USER DASHBOARD: Calculates dynamic stats and the global leaderboard
+    public function getUserDashboard(Request $request)
     {
         $email = $request->query('email');
+        if (!$email) return response()->json(['error' => 'No email provided']);
+
+        // A. Calculate Current User's Stats
+        $myPickups = PickupRequest::where('user_email', $email)->orderBy('created_at', 'desc')->get();
         
-        if (!$email) {
-            return response()->json(['points' => 0, 'co2' => 0, 'metals' => 0, 'devices' => 0, 'pickups' => [], 'leaderboard' => []]);
-        }
+        $points = 0; $co2Saved = 0; $metalsYield = 0; $devicesRecycled = 0;
 
-        // --- 1. CURRENT USER STATS ---
-        $pickups = PickupRequest::where('user_email', $email)->orderBy('created_at', 'desc')->get();
-
-        $points = 0;
-        $co2Saved = 0;
-        $metalsYieldGrams = 0; 
-        $devicesRecycled = 0;
-
-        foreach ($pickups as $p) {
+        foreach ($myPickups as $p) {
             if ($p->status === 'Completed') {
                 $devicesRecycled++;
-                
-                // Calculate dynamic yields based on the device type
                 if ($p->device_type === 'laptop') {
-                    $points += 500;
-                    $co2Saved += 25.5;
-                    $metalsYieldGrams += 96.4; // 95g Cu, 1.1g Ag, 0.3g Au
+                    $points += 500; $co2Saved += 25.5; $metalsYield += 96.4;
                 } elseif ($p->device_type === 'mobile') {
-                    $points += 150;
-                    $co2Saved += 5.2;
-                    $metalsYieldGrams += 16.4; // 16g Cu, 0.35g Ag, 0.05g Au
+                    $points += 150; $co2Saved += 5.2; $metalsYield += 16.4;
                 } else {
-                    $points += 200;
-                    $co2Saved += 10.0;
-                    $metalsYieldGrams += 35.0; // Average for appliances
+                    $points += 200; $co2Saved += 10.0; $metalsYield += 35.0;
                 }
             }
         }
 
-        // --- 2. DYNAMIC LEADERBOARD ---
-        // Fetch all completed pickups across the entire platform
-        $allCompleted = PickupRequest::where('status', 'Completed')->get();
-        $leaderboardMap = [];
+        // B. Calculate Global Leaderboard (Everyone in the platform_users table)
+        $allUsers = PlatformUser::all();
+        $allCompletedPickups = PickupRequest::where('status', 'Completed')->get();
+        
+        $leaderboard = [];
 
-        // Group points by user
-        foreach($allCompleted as $ac) {
-            if(!isset($leaderboardMap[$ac->user_email])) {
-                $leaderboardMap[$ac->user_email] = [
-                    'name' => $ac->user_name,
-                    'email' => $ac->user_email,
-                    'points' => 0
-                ];
+        // Give everyone a starting score of 0
+        foreach ($allUsers as $u) {
+            $leaderboard[$u->email] = ['name' => $u->name, 'email' => $u->email, 'points' => 0];
+        }
+
+        // Add points based on completed pickups
+        foreach ($allCompletedPickups as $ac) {
+            // Failsafe in case a pickup exists but the user hasn't synced properly
+            if (!isset($leaderboard[$ac->user_email])) {
+                $leaderboard[$ac->user_email] = ['name' => $ac->user_name, 'email' => $ac->user_email, 'points' => 0];
             }
-            if ($ac->device_type === 'laptop') $leaderboardMap[$ac->user_email]['points'] += 500;
-            elseif ($ac->device_type === 'mobile') $leaderboardMap[$ac->user_email]['points'] += 150;
-            else $leaderboardMap[$ac->user_email]['points'] += 200;
+            
+            if ($ac->device_type === 'laptop') $leaderboard[$ac->user_email]['points'] += 500;
+            elseif ($ac->device_type === 'mobile') $leaderboard[$ac->user_email]['points'] += 150;
+            else $leaderboard[$ac->user_email]['points'] += 200;
         }
 
-        // If the current user has 0 completed pickups, they won't be in the loop above. 
-        // We need to inject them at the bottom with 0 points so they see themselves!
-        if (!isset($leaderboardMap[$email])) {
-            $leaderboardMap[$email] = [
-                'name' => $pickups->first()->user_name ?? 'You',
-                'email' => $email,
-                'points' => 0
-            ];
-        }
-        
-        // Sort the array by points (Highest to Lowest)
-        usort($leaderboardMap, function($a, $b) {
-            return $b['points'] <=> $a['points'];
-        });
-        
-        // Format the top 5 for the React frontend
+        // Sort Highest to Lowest
+        usort($leaderboard, fn($a, $b) => $b['points'] <=> $a['points']);
+
+        // Format for React (Assign ranks and badges)
         $finalLeaderboard = [];
         $rank = 1;
-        foreach(array_slice($leaderboardMap, 0, 5) as $lb) {
+        foreach (array_slice($leaderboard, 0, 10) as $lb) { // Top 10
             $badge = 'Eco Beginner';
             if ($lb['points'] >= 1000) $badge = 'Green Warrior';
             if ($lb['points'] >= 5000) $badge = 'Earth Saver';
@@ -108,11 +113,13 @@ class SystemController extends Controller
         }
 
         return response()->json([
-            'points' => number_format($points),
-            'co2' => number_format($co2Saved, 1),
-            'metals' => number_format($metalsYieldGrams / 1000, 2), // Convert grams to kg!
-            'devices' => $devicesRecycled,
-            'pickups' => $pickups,
+            'stats' => [
+                'points' => number_format($points),
+                'co2' => number_format($co2Saved, 1),
+                'metals' => number_format($metalsYield / 1000, 2), // Convert g to kg
+                'devices' => $devicesRecycled,
+            ],
+            'myPickups' => $myPickups,
             'leaderboard' => $finalLeaderboard
         ]);
     }
