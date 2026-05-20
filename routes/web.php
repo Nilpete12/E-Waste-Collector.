@@ -9,7 +9,7 @@ use App\Http\Controllers\SystemController;
 
 //Home Page
 Route::get('/', function () {
-    return Inertia::render('Home');
+    return Inertia::render('HomePage');
 });
 
 Route::get('/locator', function () {
