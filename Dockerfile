@@ -22,6 +22,10 @@ COPY . .
 # 7. Install your specific dependencies
 RUN composer install --no-dev --optimize-autoloader
 RUN npm install
+
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+
 RUN npm run build
 
 # 8. Render automatically assigns a PORT, we need to expose it
