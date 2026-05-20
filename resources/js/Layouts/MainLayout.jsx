@@ -1,7 +1,26 @@
 import { Link } from '@inertiajs/react';
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
+import { useEffect } from 'react';
+import { useUser, SignOutButton } from '@clerk/clerk-react';
+import axios from 'axios';
+
+
 
 export default function MainLayout({ children }) {
+    const { user, isSignedIn, isLoaded } = useUser();
+
+    // 🚀 THE SILENT SYNC TRIGGER
+    useEffect(() => {
+        if (isLoaded && isSignedIn && user) {
+            axios.post('/api/user/sync', {
+                clerk_id: user.id,
+                name: user.fullName || user.firstName || 'Eco User',
+                email: user.primaryEmailAddress?.emailAddress,
+                role: user.publicMetadata?.role || 'user'
+            }).catch(err => console.error("User Sync Failed:", err));
+        }
+    }, [isLoaded, isSignedIn, user]);
+    
     return (
         // The flex-col and min-h-screen ensure the footer is always pushed to the bottom
         <div className="flex flex-col min-h-screen font-sans bg-stone-950 text-stone-300 selection:bg-emerald-500/30 selection:text-emerald-200">
